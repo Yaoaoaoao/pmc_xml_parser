@@ -70,11 +70,11 @@ class PMCXMLParser(object):
                 self.parse_fig(element, path)
                 self.parse_table(element, path)
 
-        dfs(root, [self.uuid()])
+        dfs(root, [])
 
     def parse_floats_group(self, root):
-        self.parse_fig(root, [0])
-        self.parse_table(root, [0])
+        self.parse_fig(root, [])
+        self.parse_table(root, [])
 
     def parse_fig(self, root, path):
         def new_fig(rst, id, text, path):
@@ -199,7 +199,7 @@ def parse_string(xml_string):
 
 if __name__ == '__main__':
     xml_file = sys.argv[1]
-    result = parse(xml_file)
+    result = parse_file(xml_file)
     # print(result)
     for i in result['elements']:
         print(i)
