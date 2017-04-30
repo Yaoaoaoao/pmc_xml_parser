@@ -7,7 +7,6 @@ import json
 from itertools import chain
 from io import BytesIO
 
-
 SPACE_PATTERN = re.compile(r'[\s][\s]+')
 
 
@@ -31,6 +30,7 @@ class PMCXMLParser(object):
 
             # Clear element. See http://stackoverflow.com/questions/12160418.
             element.clear()
+
         return self.result
 
     def parse_front(self, root):
@@ -77,34 +77,44 @@ class PMCXMLParser(object):
         self.parse_table(root, [])
 
     def parse_fig(self, root, path):
-        def new_fig(rst, id, text, path):
-            rst.append({
-                'id': id,
-                'type': 'FIG',
-                'caption': text,
-                'parent': path[:]
-            })
-
         # Only parse current level fig
         for fig in root.iterfind('./' + self.article_tag('fig')):
-            caption_node = fig.find(self.article_tag('caption'))
-            caption = self.get_title_p_text(caption_node)
-            new_fig(self.result['elements'], self.uuid(), caption, path)
+            fig_id = fig.attrib.get('id')
 
-    def parse_table(self, root, path):
-        def new_table(rst, id, text, path):
-            rst.append({
-                'id': id,
-                'type': 'TBL',
-                'caption': text,
+            label_node = fig.find(self.article_tag('label'))
+            label = label_node.text if label_node is not None else ''
+
+            caption_node = fig.find(self.article_tag('caption'))
+            caption = ' '.join(self.get_title_p_text(caption_node))
+
+            self.result['elements'].append({
+                'id': self.uuid(),
+                'fig_id': fig_id,
+                'fig_lable': label,
+                'type': 'FIG',
+                'caption': caption,
                 'parent': path[:]
             })
 
+    def parse_table(self, root, path):
         # Only parse current level table
         for table in root.iterfind('./' + self.article_tag('table-wrap')):
+            table_id = table.attrib.get('id')
+
+            label_node = table.find(self.article_tag('label'))
+            label = label_node.text if label_node is not None else ''
+
             caption_node = table.find(self.article_tag('caption'))
-            caption = self.get_title_p_text(caption_node)
-            new_table(self.result['elements'], self.uuid(), caption, path)
+            caption = ' '.join(self.get_title_p_text(caption_node))
+
+            self.result['elements'].append({
+                'id': self.uuid(),
+                'table_id': table_id,
+                'table_lable': label,
+                'type': 'TBL',
+                'caption': caption,
+                'parent': path[:]
+            })
 
     def new_sec(self, rst, id, title, path):
         rst.append({
@@ -194,7 +204,6 @@ def parse_string(xml_string):
     parser = PMCXMLParser(article_tag)
     result = parser.run(context)
     return result
-
 
 
 if __name__ == '__main__':
