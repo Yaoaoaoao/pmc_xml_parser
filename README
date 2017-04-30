@@ -1,0 +1,8 @@
+Mac 
+http://stackoverflow.com/questions/30410030/python-install-lxml-on-mac-os-10-10-1
+xcode-select -p
+xcode-select --install
+
+sudo easy_install lxml
+
+pip install shortuuid
