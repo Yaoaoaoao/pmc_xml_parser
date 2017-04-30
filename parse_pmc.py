@@ -5,11 +5,13 @@ import sys
 import re
 import json
 from itertools import chain
+from io import BytesIO
+
 
 SPACE_PATTERN = re.compile(r'[\s][\s]+')
 
 
-class ParsePMCArticle(object):
+class PMCXMLParser(object):
     def __init__(self, article_tag):
         self.article_tag = article_tag
         self.element_id = 0
@@ -154,7 +156,7 @@ def make_tag_ns(ns):
     return get_tag
 
 
-def parse(xml_file):
+def parse_file(xml_file):
     article_ns = None
     with open(xml_file) as f:
         context = etree.iterparse(f, events=('start',))
@@ -169,9 +171,30 @@ def parse(xml_file):
     with open(xml_file) as f:
         context = etree.iterparse(f, events=('end',),
                                   tag=(article_tag('article'),))
-        parser = ParsePMCArticle(article_tag)
+        parser = PMCXMLParser(article_tag)
         result = parser.run(context)
         return result
+
+
+def parse_string(xml_string):
+    # Must be of type str.
+    assert type(xml_string) is str, type(xml_string)
+
+    article_ns = None
+    context = etree.iterparse(BytesIO(xml_string), events=('start',))
+    for event, element in context:
+        if etree.QName((element.tag)).localname == 'article':
+            article_ns = element.nsmap.get(None)
+            break
+
+    assert article_ns is not None
+    article_tag = make_tag_ns(article_ns)
+    context = etree.iterparse(BytesIO(xml_string), events=('end',),
+                              tag=(article_tag('article'),))
+    parser = PMCXMLParser(article_tag)
+    result = parser.run(context)
+    return result
+
 
 
 if __name__ == '__main__':
