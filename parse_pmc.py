@@ -50,7 +50,7 @@ class PMCXMLParser(object):
         abstract_list = []
         abstract_root = root.find('.//' + self.article_tag('abstract'))
         for sec in abstract_root.iterfind('.//' + self.article_tag('sec')):
-            abstract_list.extend(self.get_title_p_text(sec))
+            abstract_list.extend(self.get_title_p_text(sec, abstract=True))
 
         self.result['abstract'] = ' '.join(abstract_list)
 
@@ -132,14 +132,17 @@ class PMCXMLParser(object):
             'parent': path[:]
         })
 
-    def get_title_p_text(self, root):
-        """ Return a list of text. """
+    def get_title_p_text(self, root, abstract=False):
+        """ 
+            If abstract = True, check and add a colon after title. 
+            Return a list of text. 
+        """
         text = []
         title_node = root.find(self.article_tag('title'))
         if title_node is not None:
             title_text = title_node.text
-            # if not title_text.endswith(':'):
-            #     title_text += ':'
+            if abstract and not title_text.endswith(':'):
+                title_text += ':'
             text.append(title_text)
 
         for p in root.findall('.//' + self.article_tag('p')):
@@ -209,7 +212,7 @@ def parse_string(xml_string):
 if __name__ == '__main__':
     xml_file = sys.argv[1]
     result = parse_file(xml_file)
-    # print(result)
-    for i in result['elements']:
-        print(i)
+    print(result)
+    # for i in result['elements']:
+    #     print(i)
         # print(json.dumps(result, indent=2, separators=(',', ': ')))
