@@ -9,6 +9,16 @@ xml_folder = sys.argv[1]
 
 json_file = open('result.json', 'w')
 
+
+def pmc(pmid, pmcid):
+    def write_ele(ele):
+        ele['pmid'] = pmid
+        ele['pmcid'] = pmcid
+        json_file.write(json.dumps(ele) + '\n')
+
+    return write_ele
+
+
 for root, _, files in os.walk(xml_folder):
     for f in files:
         if not f.endswith('.xml.tar.gz'):
@@ -16,7 +26,7 @@ for root, _, files in os.walk(xml_folder):
 
         print(f)
 
-        path = os.path.join(root, f)        
+        path = os.path.join(root, f)
         with tarfile.open(path, 'r:gz') as tar:
             for member in tar:
 
@@ -25,7 +35,24 @@ for root, _, files in os.walk(xml_folder):
                     content = f.read()
                     try:
                         result = parse_string(content)
-                        json_file.write(json.dumps(result)+'\n')
+                        write_ele = pmc(result['pmid'], result['pmcid'])
+
+                        if result['abstract'] != '':
+                            write_ele({
+                                'title': result['title'],
+                                'text': result['abstract']
+                            })
+
+                        for ele in result['elements']:
+                            if ele['type'] == 'SEC' and ele['title'] != '':
+                                write_ele(ele)
+                            elif ele['type'] == 'P' and ele['text'] != '':
+                                write_ele(ele)
+                            elif ele['type'] == 'FIG' and ele['caption'] != '':
+                                write_ele(ele)
+                            elif ele['type'] == 'TBL' and ele['caption'] != '':
+                                write_ele(ele)
+
                     except:
                         traceback.print_exc()
 
