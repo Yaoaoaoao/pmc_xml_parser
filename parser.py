@@ -14,7 +14,7 @@ class PMCXMLParser(object):
     def __init__(self, article_tag):
         self.article_tag = article_tag
         self.element_id = 0
-        self.result = {'elements': []}
+        self.result = {'pmid':'', 'pmcid': '', 'title': '', 'abstract': '', 'elements': []}
 
     def run(self, context):
         for event, element in context:
@@ -43,18 +43,18 @@ class PMCXMLParser(object):
                 self.result['pmcid'] = article_id.text
 
         # Article title
-        self.result['title'] = root.find(
-            './/' + self.article_tag('article-title')).text
+        title_ele = root.find('.//' + self.article_tag('article-title'))
+        if title_ele is not None:
+            self.result['title'] = title_ele.text
+
 
         # Abstract format: title + ': " + all p joined by " "
         abstract_list = []
         abstract_root = root.find('.//' + self.article_tag('abstract'))
-        abstract_text = ''
         if abstract_root is not None:
             for sec in abstract_root.iterfind('.//' + self.article_tag('sec')):
                 abstract_list.extend(self.get_title_p_text(sec, abstract=True))
-            abstract_text = ' '.join(abstract_list)
-        self.result['abstract'] = abstract_text
+            self.result['abstract'] = ' '.join(abstract_list)
         
     def parse_body(self, root):
         def dfs(node, path):
