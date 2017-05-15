@@ -1,20 +1,17 @@
 from __future__ import unicode_literals, print_function
 from lxml import etree
-import os
 import sys
-import re
-import json
 from itertools import chain
 from io import BytesIO
 
-SPACE_PATTERN = re.compile(r'[\s][\s]+')
-
 
 class PMCXMLParser(object):
-    def __init__(self, article_tag):
+    def __init__(self, article_tag, article_type):
         self.article_tag = article_tag
         self.element_id = 0
-        self.result = {'pmid':'', 'pmcid': '', 'title': '', 'abstract': '', 'elements': []}
+        self.result = {'pmid': '', 'pmcid': '', 'article_type': article_type,
+                       'title': '', 'abstract': '',
+                       'elements': []}
 
     def run(self, context):
         for event, element in context:
@@ -47,7 +44,6 @@ class PMCXMLParser(object):
         if title_ele is not None:
             self.result['title'] = title_ele.text
 
-
         # Abstract format: title + ': " + all p joined by " "
         abstract_list = []
         abstract_root = root.find('.//' + self.article_tag('abstract'))
@@ -55,31 +51,37 @@ class PMCXMLParser(object):
             for sec in abstract_root.iterfind('.//' + self.article_tag('sec')):
                 abstract_list.extend(self.get_title_p_text(sec, abstract=True))
             self.result['abstract'] = ' '.join(abstract_list)
-        
+
     def parse_body(self, root):
-        def dfs(node, path):
+        def dfs(node, path, parent_sec_type):
             for element in node:
                 if element.tag == self.article_tag('p'):
-                    self.new_p(self.result['elements'], self.uuid(),
-                               self.stringfy_node(element), path)
+                    self.new_p(self.uuid(), self.stringfy_node(element), path,
+                               parent_sec_type)
 
                 if element.tag == self.article_tag('sec'):
                     sec_id = self.uuid()
                     title_ele = element.find('.//' + self.article_tag('title'))
                     title = title_ele.text if title_ele is not None else ''
-                    self.new_sec(self.result['elements'], sec_id, title, path)
-                    dfs(element, path + [sec_id])
 
-                self.parse_fig(element, path)
-                self.parse_table(element, path)
+                    # Decide sec type
+                    xml_sec_type = element.attrib.get('sec-type')
+                    sec_type = self.assign_sec_type(parent_sec_type,
+                                                    xml_sec_type, title)
 
-        dfs(root, [])
+                    self.new_sec(sec_id, title, path, xml_sec_type, sec_type)
+                    dfs(element, path + [sec_id], sec_type)
+
+                self.parse_fig(element, path, parent_sec_type)
+                self.parse_table(element, path, parent_sec_type)
+
+        dfs(root, [], 'other')
 
     def parse_floats_group(self, root):
-        self.parse_fig(root, [])
-        self.parse_table(root, [])
+        self.parse_fig(root, [], 'other')
+        self.parse_table(root, [], 'other')
 
-    def parse_fig(self, root, path):
+    def parse_fig(self, root, path, sec_type):
         # Only parse current level fig
         for fig in root.iterfind('./' + self.article_tag('fig')):
             fig_id = fig.attrib.get('id')
@@ -98,10 +100,11 @@ class PMCXMLParser(object):
                 'fig_lable': label,
                 'type': 'FIG',
                 'caption': caption,
-                'parent': path[:]
+                'parent': path[:],
+                'sec_type': sec_type
             })
 
-    def parse_table(self, root, path):
+    def parse_table(self, root, path, sec_type):
         # Only parse current level table
         for table in root.iterfind('./' + self.article_tag('table-wrap')):
             table_id = table.attrib.get('id')
@@ -120,23 +123,29 @@ class PMCXMLParser(object):
                 'table_lable': label,
                 'type': 'TBL',
                 'caption': caption,
-                'parent': path[:]
+                'parent': path[:],
+                'sec_type': sec_type
             })
 
-    def new_sec(self, rst, id, title, path):
-        rst.append({
+    def new_sec(self, id, title, path, xml_sec_type, sec_type):
+        ele = {
             'id': id,
             'type': 'SEC',
             'title': title,
-            'parent': path[:]
-        })
+            'parent': path[:],
+            'sec_type': sec_type
+        }
+        if xml_sec_type is not None:
+            ele['xml_sec_type'] = xml_sec_type
+        self.result['elements'].append(ele)
 
-    def new_p(self, rst, id, text, path):
-        rst.append({
+    def new_p(self, id, text, path, sec_type):
+        self.result['elements'].append({
             'id': id,
             'type': 'P',
             'text': text,
-            'parent': path[:]
+            'parent': path[:],
+            'sec_type': sec_type
         })
 
     def get_title_p_text(self, root, abstract=False):
@@ -157,6 +166,51 @@ class PMCXMLParser(object):
             text.append(self.stringfy_node(p))
 
         return text
+
+    def assign_sec_type(self, parent_sec_type, xml_sec_type, title_text):
+        if xml_sec_type is None:
+            xml_sec_type = ''
+
+        if 'supplementary-material' in xml_sec_type:
+            sec_type = 'other'
+        elif 'material' in xml_sec_type:
+            sec_type = 'methods'
+        elif 'method' in xml_sec_type:
+            sec_type = 'methods'
+        elif 'display-objects' in xml_sec_type:
+            sec_type = 'other'
+        elif 'result' in xml_sec_type:
+            sec_type = 'results'
+        elif 'discussion' in xml_sec_type:
+            sec_type = 'discussion'
+        elif 'intro' in xml_sec_type:
+            sec_type = 'introduction'
+        else:
+            if parent_sec_type is not None and \
+                    parent_sec_type != '' and parent_sec_type != 'other':
+                sec_type = parent_sec_type
+            else:
+                title_text = title_text.lower()
+                if 'background' in title_text:
+                    sec_type = 'background'
+                elif 'introduction' in title_text:
+                    sec_type = 'introduction'
+                elif 'method' in title_text:
+                    sec_type = 'methods'
+                elif 'material' in title_text:
+                    sec_type = 'materials'
+                elif 'result' in title_text:
+                    sec_type = 'results'
+                elif 'discussion' in title_text:
+                    sec_type = 'discussion'
+                elif 'conclusion' in title_text:
+                    sec_type = 'conclusion'
+                elif 'appendix' in title_text:
+                    sec_type = 'appendix'
+                else:
+                    sec_type = 'other'
+
+        return sec_type
 
     def stringfy_node(self, node):
         parts = [node.text] + list(
@@ -179,44 +233,45 @@ def make_tag_ns(ns):
     return get_tag
 
 
+def parse_article(handle):
+    article = {'type': None, 'ns': None}
+    context = etree.iterparse(handle, events=('start',))
+    for event, element in context:
+        if 'article-type' in element.attrib:
+            article['type'] = element.attrib.get('article-type')
+        if etree.QName((element.tag)).localname == 'article':
+            article['ns'] = element.nsmap.get(None, '')
+            break
+    return article
+
+
+def parse_xml(article, handle):
+    article_tag = make_tag_ns(article['ns'])
+    context = etree.iterparse(handle, events=('end',),
+                              tag=(article_tag('article'),))
+    parser = PMCXMLParser(article_tag, article['type'])
+    result = parser.run(context)
+    return result
+
+
 def parse_file(xml_file):
-    article_ns = None
     with open(xml_file) as f:
-        context = etree.iterparse(f, events=('start',))
-        for event, element in context:
-            if etree.QName((element.tag)).localname == 'article':
-                article_ns = element.nsmap.get(None, '')
-                break
+        article = parse_article(f)
 
-    assert article_ns is not None, xml_file
-    article_tag = make_tag_ns(article_ns)
+    assert article['ns'] is not None, xml_file
 
     with open(xml_file) as f:
-        context = etree.iterparse(f, events=('end',),
-                                  tag=(article_tag('article'),))
-        parser = PMCXMLParser(article_tag)
-        result = parser.run(context)
-        return result
+        return parse_xml(article, f)
 
 
 def parse_string(xml_string):
     # Must be of type str.
     assert type(xml_string) is str, type(xml_string)
 
-    article_ns = None
-    context = etree.iterparse(BytesIO(xml_string), events=('start',))
-    for event, element in context:
-        if etree.QName((element.tag)).localname == 'article':
-            article_ns = element.nsmap.get(None, '')
-            break
+    article = parse_article(BytesIO(xml_string))
 
-    assert article_ns is not None
-    article_tag = make_tag_ns(article_ns)
-    context = etree.iterparse(BytesIO(xml_string), events=('end',),
-                              tag=(article_tag('article'),))
-    parser = PMCXMLParser(article_tag)
-    result = parser.run(context)
-    return result
+    assert article['ns'] is not None
+    return parse_xml(article, BytesIO(xml_string))
 
 
 if __name__ == '__main__':
@@ -225,4 +280,3 @@ if __name__ == '__main__':
     print(result)
     # for i in result['elements']:
     #     print(i)
-        # print(json.dumps(result, indent=2, separators=(',', ': ')))

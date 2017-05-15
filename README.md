@@ -5,7 +5,6 @@ xcode-select --install
 
 sudo easy_install lxml
 
-pip install shortuuid
 
 ```
 Output format: 
@@ -22,18 +21,22 @@ SEC
     'id': id,
     'type': 'SEC',
     'title': title,
-    'parent': []
+    'parent': [],
+    'sec_type': '...',
+    'xml_sec_type': '...'  # optional
+    
 }
 P 
 {
     'id': id,
     'type': 'P',
     'text': text,
-    'parent': []
+    'parent': [],
+    'sec_type': '...'
 }
 FIG
 {
-    'id': self.uuid(),
+    'id': id,
     'fig_id': fig_id,
     'fig_lable': label,
     'type': 'FIG',
@@ -42,7 +45,7 @@ FIG
 }
 TABLE
 {
-    'id': self.uuid(),
+    'id': id,
     'table_id': table_id,
     'table_lable': label,
     'type': 'TBL',
