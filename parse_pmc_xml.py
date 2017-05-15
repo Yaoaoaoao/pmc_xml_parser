@@ -42,7 +42,9 @@ for root, _, files in os.walk(xml_folder):
                         if result['abstract'] != '':
                             write_ele({
                                 'title': result['title'],
-                                'text': result['abstract']
+                                'text': result['abstract'],
+                                'type': 'ABS',
+                                'sec-type': 'abstract'
                             })
 
                         for ele in result['elements']:
