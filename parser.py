@@ -190,7 +190,7 @@ class PMCXMLParser(object):
                     parent_sec_type != '' and parent_sec_type != 'other':
                 sec_type = parent_sec_type
             else:
-                title_text = title_text.lower()
+                title_text = title_text.lower() if title_text else ''
                 if 'background' in title_text:
                     sec_type = 'background'
                 elif 'introduction' in title_text:
