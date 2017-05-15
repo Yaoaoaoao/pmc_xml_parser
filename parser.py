@@ -38,7 +38,9 @@ class PMCXMLParser(object):
                 self.result['pmid'] = article_id.text
             if attr == 'pmcid':
                 self.result['pmcid'] = article_id.text
-
+            if attr == 'pmc' or attr == 'pmc-uid':
+                self.result['pmcid'] = 'PMC' + article_id.text
+                
         # Article title
         title_ele = root.find('.//' + self.article_tag('article-title'))
         if title_ele is not None:
