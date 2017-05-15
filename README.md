@@ -41,7 +41,8 @@ FIG
     'fig_lable': label,
     'type': 'FIG',
     'caption': caption,
-    'parent': []
+    'parent': [],
+    'sec_type': '...'
 }
 TABLE
 {
@@ -50,6 +51,7 @@ TABLE
     'table_lable': label,
     'type': 'TBL',
     'caption': caption,
-    'parent': []
+    'parent': [],
+    'sec_type': '...'
 }
 ``` 
