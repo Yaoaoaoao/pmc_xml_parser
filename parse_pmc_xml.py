@@ -10,10 +10,11 @@ xml_folder = sys.argv[1]
 json_file = open('result.json', 'w')
 
 
-def pmc(pmid, pmcid):
+def pmc(pmid, pmcid, article_type):
     def write_ele(ele):
         ele['pmid'] = pmid
         ele['pmcid'] = pmcid
+        ele['article_type'] = article_type
         json_file.write(json.dumps(ele) + '\n')
 
     return write_ele
@@ -35,7 +36,8 @@ for root, _, files in os.walk(xml_folder):
                     content = f.read()
                     try:
                         result = parse_string(content)
-                        write_ele = pmc(result['pmid'], result['pmcid'])
+                        write_ele = pmc(result['pmid'], result['pmcid'],
+                                        result['article_type'])
 
                         if result['abstract'] != '':
                             write_ele({
