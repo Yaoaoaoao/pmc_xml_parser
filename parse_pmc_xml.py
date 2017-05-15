@@ -39,16 +39,10 @@ for root, _, files in os.walk(xml_folder):
                         write_ele = pmc(result['pmid'], result['pmcid'],
                                         result['article_type'])
 
-                        if result['abstract'] != '':
-                            write_ele({
-                                'title': result['title'],
-                                'text': result['abstract'],
-                                'type': 'ABS',
-                                'sec-type': 'abstract'
-                            })
-
                         for ele in result['elements']:
-                            if ele['type'] == 'SEC' and ele['title'] != '':
+                            if ele['type'] == 'ABS':
+                                write_ele(ele)
+                            elif ele['type'] == 'SEC' and ele['title'] != '':
                                 write_ele(ele)
                             elif ele['type'] == 'P' and ele['text'] != '':
                                 write_ele(ele)

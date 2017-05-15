@@ -10,7 +10,6 @@ class PMCXMLParser(object):
         self.article_tag = article_tag
         self.element_id = 0
         self.result = {'pmid': '', 'pmcid': '', 'article_type': article_type,
-                       'title': '', 'abstract': '',
                        'elements': []}
 
     def run(self, context):
@@ -40,26 +39,33 @@ class PMCXMLParser(object):
                 self.result['pmcid'] = article_id.text
             if attr == 'pmc' or attr == 'pmc-uid':
                 self.result['pmcid'] = 'PMC' + article_id.text
-                
+
         # Article title
         title_ele = root.find('.//' + self.article_tag('article-title'))
+        title = ''
         if title_ele is not None:
-            self.result['title'] = title_ele.text
+            title = title_ele.text
 
         # Abstract format: title + ': " + all p joined by " "
         abstract_list = []
         abstract_root = root.find('.//' + self.article_tag('abstract'))
+        abstract = ''
         if abstract_root is not None:
             for sec in abstract_root.iterfind('.//' + self.article_tag('sec')):
                 abstract_list.extend(self.get_title_p_text(sec, abstract=True))
-            self.result['abstract'] = ' '.join(abstract_list)
+            abstract = ' '.join(abstract_list)
+
+        addition = {
+            'title': title,
+            'text': abstract
+        }
+        self.new_element(0, 'ABS', 'abstract', [], addition)
 
     def parse_body(self, root):
         def dfs(node, path, parent_sec_type):
             for element in node:
                 if element.tag == self.article_tag('p'):
-                    self.new_p(self.uuid(), self.stringfy_node(element), path,
-                               parent_sec_type)
+                    self.parse_p(element, parent_sec_type, path)
 
                 if element.tag == self.article_tag('sec'):
                     sec_id = self.uuid()
@@ -83,6 +89,26 @@ class PMCXMLParser(object):
         self.parse_fig(root, [], 'other')
         self.parse_table(root, [], 'other')
 
+    def new_element(self, id, ele_type, sec_type, path, addition):
+        element = {
+            'id': id,
+            'type': ele_type,
+            'sec_type': sec_type,
+            'parent': path[:]
+        }
+        element.update(addition)
+        self.result['elements'].append(element)
+        
+    def new_sec(self, id, title, path, xml_sec_type, sec_type):
+        addition = {'title': title}
+        if xml_sec_type is not None:
+            addition['xml_sec_type'] = xml_sec_type
+        self.new_element(id, 'SEC', sec_type, path, addition)
+
+    def parse_p(self, p_ele, sec_type, path):
+        text = self.stringfy_node(p_ele)
+        self.new_element(self.uuid(), 'P', sec_type, path, {'text': text})
+
     def parse_fig(self, root, path, sec_type):
         # Only parse current level fig
         for fig in root.iterfind('./' + self.article_tag('fig')):
@@ -96,15 +122,12 @@ class PMCXMLParser(object):
             if caption_node is not None:
                 caption = ' '.join(self.get_title_p_text(caption_node))
 
-            self.result['elements'].append({
-                'id': self.uuid(),
+            addition = {
                 'fig_id': fig_id,
                 'fig_lable': label,
-                'type': 'FIG',
-                'caption': caption,
-                'parent': path[:],
-                'sec_type': sec_type
-            })
+                'caption': caption
+            }
+            self.new_element(self.uuid(), 'FIG', sec_type, path, addition)
 
     def parse_table(self, root, path, sec_type):
         # Only parse current level table
@@ -119,36 +142,12 @@ class PMCXMLParser(object):
             if caption_node is not None:
                 caption = ' '.join(self.get_title_p_text(caption_node))
 
-            self.result['elements'].append({
-                'id': self.uuid(),
+            addition = {
                 'table_id': table_id,
                 'table_lable': label,
-                'type': 'TBL',
-                'caption': caption,
-                'parent': path[:],
-                'sec_type': sec_type
-            })
-
-    def new_sec(self, id, title, path, xml_sec_type, sec_type):
-        ele = {
-            'id': id,
-            'type': 'SEC',
-            'title': title,
-            'parent': path[:],
-            'sec_type': sec_type
-        }
-        if xml_sec_type is not None:
-            ele['xml_sec_type'] = xml_sec_type
-        self.result['elements'].append(ele)
-
-    def new_p(self, id, text, path, sec_type):
-        self.result['elements'].append({
-            'id': id,
-            'type': 'P',
-            'text': text,
-            'parent': path[:],
-            'sec_type': sec_type
-        })
+                'caption': caption
+            }
+            self.new_element(self.uuid(), 'TBL', sec_type, path, addition)
 
     def get_title_p_text(self, root, abstract=False):
         """ 

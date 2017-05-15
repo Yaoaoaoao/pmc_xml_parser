@@ -6,52 +6,52 @@ xcode-select --install
 sudo easy_install lxml
 
 
-```
 Output format: 
+```
 {'pmid':'', 
  'pmcid': '', 
- 'title': '', 
- 'abstract': '', 
+ 'article_type', '',
  'elements': []
 }
+```
 
-Elements can be:
-SEC 
+Every element in 'elements' contains the following fields: 
+```
 {
     'id': id,
-    'type': 'SEC',
-    'title': title,
-    'parent': [],
+    'type': '...',
     'sec_type': '...',
-    'xml_sec_type': '...'  # optional
-    
+    'parent': []
 }
-P 
+```
+For each element type, it contains additional field: 
+```
+type == 'ABS'
 {
-    'id': id,
-    'type': 'P',
+    'id': 0,
+    'sec_type': 'abstract'
+    'title': '...',
+    'text': '...'
+}
+type == 'SEC' 
+{
+    'title': title,
+    'xml_sec_type': '...'  # optional   
+}
+type == 'P' 
+{
     'text': text,
-    'parent': [],
-    'sec_type': '...'
 }
-FIG
+type == 'FIG'
 {
-    'id': id,
     'fig_id': fig_id,
     'fig_lable': label,
-    'type': 'FIG',
     'caption': caption,
-    'parent': [],
-    'sec_type': '...'
 }
-TABLE
+type == 'TBL'
 {
-    'id': id,
     'table_id': table_id,
     'table_lable': label,
-    'type': 'TBL',
     'caption': caption,
-    'parent': [],
-    'sec_type': '...'
 }
 ``` 
