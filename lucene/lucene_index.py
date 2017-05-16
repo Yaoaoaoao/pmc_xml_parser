@@ -3,7 +3,6 @@ import sys
 import json
 import codecs
 import glog
-from tqdm import tqdm
 
 import lucene
 from java.nio.file import Paths
@@ -43,7 +42,7 @@ if __name__ == '__main__':
     t1.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS)
 
     with codecs.open(json_file, encoding='utf8') as f:
-        for line in tqdm(f):
+        for line in f:
             line = line.strip()
             try:
                 json_doc = json.loads(line)
@@ -53,34 +52,37 @@ if __name__ == '__main__':
 
             # Delete existing abstracts. This is useful when adding
             # update files from Medline.
-            assert 'pmid' in json_doc
-            pmid_query = TermQuery(Term('pmid', json_doc['pmid']))
-            id_query = IntPoint.newRangeQuery("id", json_doc['id'], json_doc['id'])
-            bq = BooleanQuery.Builder()
-            bq.add(pmid_query, BooleanClause.Occur.MUST)
-            bq.add(id_query, BooleanClause.Occur.MUST)
-            q = bq.build()
-            writer.deleteDocuments(q)
-
-            # Add whole abstract.
-            doc = Document()
-            doc.add(StringField('pmid', json_doc['pmid'], Field.Store.YES))
-            doc.add(StringField('pmcid', json_doc['pmcid'], Field.Store.NO))
-            doc.add(StringField('article_type', json_doc['article_type'], Field.Store.NO))
-            doc.add(IntPoint('id', json_doc['id'])) # index
-            doc.add(StoredField('id', json_doc['id'])) # store
-            doc.add(StringField('type', json_doc['type'], Field.Store.NO))
-            doc.add(StringField('sec_type', json_doc['sec_type'], Field.Store.NO))
-            # doc.add(SortedDocValuesField('pmid', BytesRef(json_doc['docId'])))
-
-            if 'text' in json_doc:
-                doc.add(Field('text', json_doc['text'], t1))
-            if 'title' in json_doc:
-                doc.add(Field('title', json_doc['title'], t1))
-            if 'caption' in json_doc:
-                doc.add(Field('caption', json_doc['caption'], t1))
-
-            writer.addDocument(doc)
+            try: 
+                assert 'pmid' in json_doc
+                pmid_query = TermQuery(Term('pmid', json_doc['pmid']))
+                id_query = IntPoint.newRangeQuery("id", json_doc['id'], json_doc['id'])
+                bq = BooleanQuery.Builder()
+                bq.add(pmid_query, BooleanClause.Occur.MUST)
+                bq.add(id_query, BooleanClause.Occur.MUST)
+                q = bq.build()
+                writer.deleteDocuments(q)
+    
+                # Add whole abstract.
+                doc = Document()
+                doc.add(StringField('pmid', json_doc['pmid'], Field.Store.YES))
+                doc.add(StringField('pmcid', json_doc['pmcid'], Field.Store.NO))
+                doc.add(StringField('article_type', json_doc['article_type'], Field.Store.NO))
+                doc.add(IntPoint('id', json_doc['id'])) # index
+                doc.add(StoredField('id', json_doc['id'])) # store
+                doc.add(StringField('type', json_doc['type'], Field.Store.NO))
+                doc.add(StringField('sec_type', json_doc['sec_type'], Field.Store.NO))
+                # doc.add(SortedDocValuesField('pmid', BytesRef(json_doc['docId'])))
+    
+                if 'text' in json_doc:
+                    doc.add(Field('text', json_doc['text'], t1))
+                if 'title' in json_doc:
+                    doc.add(Field('title', json_doc['title'], t1))
+                if 'caption' in json_doc:
+                    doc.add(Field('caption', json_doc['caption'], t1))
+    
+                writer.addDocument(doc)
+            except: 
+                print(json_doc)
 
             # for sentence in json_doc['sentence']:
             #     char_start, char_end = -1, -1

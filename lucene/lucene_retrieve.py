@@ -3,8 +3,7 @@
 INDEX_DIR = "index"
 
 import sys, os, lucene
-# from pymongo import MongoClient
-import json
+from pmc_mongo import *
 
 from java.nio.file import Paths
 from org.apache.lucene.analysis.miscellaneous import LimitTokenCountAnalyzer
@@ -40,7 +39,7 @@ def run(searcher, analyzer):
         print "Searching for:", command
         query = QueryParser("text", analyzer).parse(command)
         print query
-        scoreDocs = searcher.search(query, 50).scoreDocs
+        scoreDocs = searcher.search(query, 5).scoreDocs
         print "%s total matching documents." % len(scoreDocs)
 
         for scoreDoc in scoreDocs:
@@ -48,6 +47,8 @@ def run(searcher, analyzer):
             pmid = doc.get('pmid')
             id_ = doc.get('id')
             print(pmid, id_)
+            print(fetch_text(pmid, id_))
+            
             # sent_id = int(doc.get('sent_id'))
             # json_doc = db.medline.find_one({'docId': pmid}, {'_id': 0})
             # sentence = json_doc['sentence'][sent_id]
@@ -62,7 +63,8 @@ if __name__ == '__main__':
     lucene.initVM(vmargs=['-Djava.awt.headless=true'])
     print 'lucene', lucene.VERSION
     base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    directory = SimpleFSDirectory(Paths.get(os.path.join(base_dir, INDEX_DIR)))
+    index_dir = sys.argv[1]
+    directory = SimpleFSDirectory(Paths.get(index_dir))
     index = DirectoryReader.open(directory)
     print 'index has {} documents'.format(index.numDocs())
     searcher = IndexSearcher(index)
