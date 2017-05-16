@@ -6,7 +6,7 @@ xcode-select --install
 sudo easy_install lxml
 
 
-Output format: 
+### parser.py output format: 
 ```
 {'pmid':'', 
  'pmcid': '', 
@@ -55,3 +55,8 @@ type == 'TBL'
     'caption': caption,
 }
 ``` 
+
+### parse_pmc_xml.py
+Parse every "xml.tar.gz" file under one folder.
+
+### lucene
