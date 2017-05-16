@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-INDEX_DIR = "index"
-
 import sys, os, lucene
 from pmc_mongo import *
 
@@ -24,10 +22,8 @@ search.close() is currently commented out because it causes a stack overflow in
 some cases.
 """
 
-def run(searcher, analyzer):
-    # client = MongoClient('localhost')
-    # db = client.biotm
 
+def run(searcher, analyzer):
     while True:
         print
         print "Hit enter with no input to quit."
@@ -48,21 +44,23 @@ def run(searcher, analyzer):
             id_ = doc.get('id')
             print(pmid, id_)
             print(fetch_text(pmid, id_))
-            
+
             # sent_id = int(doc.get('sent_id'))
             # json_doc = db.medline.find_one({'docId': pmid}, {'_id': 0})
             # sentence = json_doc['sentence'][sent_id]
-            # char_start = sentence['charStart'] if 'charStart' in sentence else 0
+            # char_start = sentence['charStart'] if 'charStart' in sentence 
+            # else 0
             # char_end = sentence['charEnd'] if 'charEnd' in sentence else 0
             # sent_text = json_doc['text'][char_start:char_end+1]
             # 
-            # print doc.get("pmid"), doc.get("sent_id"), doc.get("is_title"), sent_text
+            # print doc.get("pmid"), doc.get("sent_id"), doc.get("is_title"),
+            #  sent_text
 
 
 if __name__ == '__main__':
     lucene.initVM(vmargs=['-Djava.awt.headless=true'])
     print 'lucene', lucene.VERSION
-    base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    # base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     index_dir = sys.argv[1]
     directory = SimpleFSDirectory(Paths.get(index_dir))
     index = DirectoryReader.open(directory)
@@ -72,6 +70,6 @@ if __name__ == '__main__':
     stop_words = CharArraySet(50, True)
     c_analyzer = ClassicAnalyzer(stop_words)
     analyzer = LimitTokenCountAnalyzer(c_analyzer, 1048576)
-    
+
     run(searcher, analyzer)
     del searcher
