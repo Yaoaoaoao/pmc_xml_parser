@@ -42,9 +42,7 @@ class PMCXMLParser(object):
 
         # Article title
         title_ele = root.find('.//' + self.article_tag('article-title'))
-        title = ''
-        if title_ele is not None:
-            title = title_ele.text
+        title = self.get_title_text(title_ele)
 
         # Abstract format: title + ': " + all p joined by " "
         abstract_list = []
@@ -70,7 +68,7 @@ class PMCXMLParser(object):
                 if element.tag == self.article_tag('sec'):
                     sec_id = self.uuid()
                     title_ele = element.find('.//' + self.article_tag('title'))
-                    title = title_ele.text if title_ele is not None else ''
+                    title = self.get_title_text(title_ele)
 
                     # Decide sec type
                     xml_sec_type = element.attrib.get('sec-type')
@@ -149,19 +147,21 @@ class PMCXMLParser(object):
             }
             self.new_element(self.uuid(), 'TBL', sec_type, path, addition)
 
+    def get_title_text(self, ele):
+         return self.stringfy_node(ele) if ele is not None else ''
+
     def get_title_p_text(self, root, abstract=False):
         """ 
             If abstract = True, check and add a colon after title. 
             Return a list of text. 
         """
         text = []
-        title_node = root.find(self.article_tag('title'))
-        if title_node is not None:
-            title_text = title_node.text
-            if title_text is not None:
-                if abstract and not title_text.endswith(':'):
-                    title_text += ':'
-                text.append(title_text)
+        title_ele = root.find(self.article_tag('title'))
+        title = self.get_title_text(title_ele)
+        if title != '':
+            if abstract and not title.endswith(':'):
+                title += ':'
+            text.append(title)
 
         for p in root.findall('.//' + self.article_tag('p')):
             text.append(self.stringfy_node(p))
