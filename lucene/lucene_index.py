@@ -65,22 +65,18 @@ if __name__ == '__main__':
 
                 # Add whole abstract.
                 doc = Document()
-                doc.add(StringField('pmid', json_doc['pmid'], Field.Store.YES))
-                doc.add(StringField('pmcid', json_doc['pmcid'], Field.Store.YES))
-                doc.add(StringField('article_type', json_doc['article_type'],
-                                    Field.Store.NO))
+                # Store field.
                 doc.add(IntPoint('id', json_doc['id']))  # index
                 doc.add(StoredField('id', json_doc['id']))  # store
+                doc.add(StringField('pmid', json_doc['pmid'], Field.Store.YES))
+                doc.add(StringField('pmcid', json_doc['pmcid'], Field.Store.YES))
+                # Index only.
+                doc.add(StringField('article_type', json_doc['article_type'],
+                                    Field.Store.NO))
                 doc.add(StringField('type', json_doc['type'], Field.Store.NO))
                 doc.add(StringField('sec_type', json_doc['sec_type'],
                                     Field.Store.NO))
-
-                if 'text' in json_doc:
-                    doc.add(Field('text', json_doc['text'], t1))
-                if 'title' in json_doc:
-                    doc.add(Field('title', json_doc['title'], t1))
-                if 'caption' in json_doc:
-                    doc.add(Field('caption', json_doc['caption'], t1))
+                doc.add(Field('text', json_doc['text'], t1))
 
                 writer.addDocument(doc)
             except:

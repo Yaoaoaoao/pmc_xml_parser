@@ -5,53 +5,66 @@ from parser import parse_file, parse_string
 import traceback
 import tarfile
 
-xml_folder = sys.argv[1]
 
-json_file = open('result.json', 'w')
+def texify(pmid, pmcid, article_type, ele):
+    """
+    Merge all element title/text/caption into "text" field. So the entity offset
+    is based on the "text" field. For title, keep an extra title_offset 
+    attribute of the start and end (inclusive) position.
+    """
+    ele['pmid'] = pmid
+    ele['pmcid'] = pmcid
+    ele['article_type'] = article_type
+
+    text = []
+    if 'title' in ele:
+        # title ends with either .?!
+        title = ele['title']
+        if not title.endswith(('.', '!', '?')):
+            title += '.'
+        text.append(title)
+        del ele['title']
+        ele['title_offset'] = [0, len(title) - 1]
+    if 'text' in ele:
+        text.append(ele['text'])
+        del ele['text']
+    if 'caption' in ele:
+        text.append(ele['caption'])
+        del ele['caption']
+
+    ele['text'] = ' '.join(text)
 
 
-def pmc(pmid, pmcid, article_type):
-    def write_ele(ele):
-        ele['pmid'] = pmid
-        ele['pmcid'] = pmcid
-        ele['article_type'] = article_type
-        json_file.write(json.dumps(ele) + '\n')
+def extract_from_tar(path, json_file):
+    with tarfile.open(path, 'r:gz') as tar:
+        for member in tar:
+            if not member.isreg():
+                continue
 
-    return write_ele
+            f = tar.extractfile(member)
+            content = f.read()
+            try:
+                result = parse_string(content)
+                for ele in result['elements']:
+                    texify(result['pmid'], result['pmcid'],
+                           result['article_type'], ele)
+                    json_file.write(json.dumps(ele) + '\n')
+
+            except:
+                traceback.print_exc()
 
 
-for root, _, files in os.walk(xml_folder):
-    for f in files:
-        if not f.endswith('.xml.tar.gz'):
-            continue
+if __name__ == '__main__':
+    xml_folder = sys.argv[1]
+    json_file = open('result.json', 'w')
 
-        print(f)
+    for root, _, files in os.walk(xml_folder):
+        for f in files:
+            if not f.endswith('.xml.tar.gz'):
+                continue
 
-        path = os.path.join(root, f)
-        with tarfile.open(path, 'r:gz') as tar:
-            for member in tar:
+            print(f)
+            path = os.path.join(root, f)
+            extract_from_tar(path, json_file)
 
-                if member.isreg():
-                    f = tar.extractfile(member)
-                    content = f.read()
-                    try:
-                        result = parse_string(content)
-                        write_ele = pmc(result['pmid'], result['pmcid'],
-                                        result['article_type'])
-
-                        for ele in result['elements']:
-                            if ele['type'] == 'ABS':
-                                write_ele(ele)
-                            elif ele['type'] == 'SEC' and ele['title'] != '':
-                                write_ele(ele)
-                            elif ele['type'] == 'P' and ele['text'] != '':
-                                write_ele(ele)
-                            elif ele['type'] == 'FIG' and ele['caption'] != '':
-                                write_ele(ele)
-                            elif ele['type'] == 'TBL' and ele['caption'] != '':
-                                write_ele(ele)
-
-                    except:
-                        traceback.print_exc()
-
-json_file.close()
+    json_file.close()

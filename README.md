@@ -57,6 +57,21 @@ type == 'TBL'
 ``` 
 
 ### parse_pmc_xml.py
-Parse every "xml.tar.gz" file under one folder.
+Parse every "xml.tar.gz" file under one folder. 
+Output format: 
+```
+{
+    'id': id,
+    'type': '...',
+    'sec_type': '...',
+    'parent': [],
+    'pmid':'', 
+    'pmcid': '', 
+    'article_type', '',
+    'text': '...'   # title + text + caption: add '.' if title is not end with '.!?'
+    'title_offset': [0, #]   # optional: if text contains a title
+    ... 
+}
+```
 
 ### lucene
