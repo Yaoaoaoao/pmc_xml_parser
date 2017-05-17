@@ -41,9 +41,10 @@ def run(searcher, analyzer):
         for scoreDoc in scoreDocs:
             doc = searcher.doc(scoreDoc.doc)
             pmid = doc.get('pmid')
+            pmcid = doc.get('pmcid')
             id_ = doc.get('id')
             print(pmid, id_)
-            print(fetch_text(pmid, id_))
+            print(fetch_text(pmid, pmcid, id_))
 
             # sent_id = int(doc.get('sent_id'))
             # json_doc = db.medline.find_one({'docId': pmid}, {'_id': 0})

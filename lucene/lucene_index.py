@@ -56,10 +56,12 @@ if __name__ == '__main__':
             try:
                 assert 'pmid' in json_doc
                 pmid_query = TermQuery(Term('pmid', json_doc['pmid']))
+                pmcid_query = TermQuery(Term('pmcid', json_doc['pmcid']))
                 id_query = IntPoint.newRangeQuery("id", json_doc['id'],
                                                   json_doc['id'])
                 bq = BooleanQuery.Builder()
                 bq.add(pmid_query, BooleanClause.Occur.MUST)
+                bq.add(pmcid_query, BooleanClause.Occur.MUST)
                 bq.add(id_query, BooleanClause.Occur.MUST)
                 q = bq.build()
                 writer.deleteDocuments(q)

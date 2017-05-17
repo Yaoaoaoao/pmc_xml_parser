@@ -4,5 +4,5 @@ client = MongoClient('localhost')
 db = client.pmc
 
 
-def fetch_text(pmid, id_):
-    return db.text.find_one({"pmid": pmid, "id": int(id_)})
+def fetch_text(pmid, pmcid, id_):
+    return db.text.find_one({"pmid": pmid, "pmcid": pmcid, "id": int(id_)})
