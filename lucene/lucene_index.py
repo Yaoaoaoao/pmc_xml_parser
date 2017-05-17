@@ -66,7 +66,7 @@ if __name__ == '__main__':
                 # Add whole abstract.
                 doc = Document()
                 doc.add(StringField('pmid', json_doc['pmid'], Field.Store.YES))
-                doc.add(StringField('pmcid', json_doc['pmcid'], Field.Store.NO))
+                doc.add(StringField('pmcid', json_doc['pmcid'], Field.Store.YES))
                 doc.add(StringField('article_type', json_doc['article_type'],
                                     Field.Store.NO))
                 doc.add(IntPoint('id', json_doc['id']))  # index
@@ -74,8 +74,6 @@ if __name__ == '__main__':
                 doc.add(StringField('type', json_doc['type'], Field.Store.NO))
                 doc.add(StringField('sec_type', json_doc['sec_type'],
                                     Field.Store.NO))
-                # doc.add(SortedDocValuesField('pmid', BytesRef(json_doc[
-                # 'docId'])))
 
                 if 'text' in json_doc:
                     doc.add(Field('text', json_doc['text'], t1))
