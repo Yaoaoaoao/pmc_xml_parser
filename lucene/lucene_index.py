@@ -3,6 +3,7 @@ import sys
 import json
 import codecs
 import glog
+from tqdm import tqdm
 
 import lucene
 from java.nio.file import Paths
@@ -42,7 +43,7 @@ if __name__ == '__main__':
     t1.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS)
 
     with codecs.open(json_file, encoding='utf8') as f:
-        for line in f:
+        for line in tqdm(f):
             line = line.strip()
             try:
                 json_doc = json.loads(line)
