@@ -33,6 +33,7 @@ def texify(pmid, pmcid, article_type, ele):
         del ele['caption']
 
     ele['text'] = ' '.join(text)
+    ele['docId'] = '{}-{}'.format(ele['pmcid'], ele['id'])
 
 
 def extract_from_tar(path, json_file):
